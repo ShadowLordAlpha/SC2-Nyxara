@@ -16,42 +16,68 @@ BuildChoices:
     test_123:
         BotName: Test
         Cycle:
-            - DummyOpening
+            - Safe
 
     Protoss:
         BotName: ProtossRace
         Cycle:
-            - DummyOpening
+            - Safe
 
     Random:
         BotName: RandomRace
         Cycle:
-            - DummyOpening
+            - Safe
 
     Terran:
         BotName: TerranRace
         Cycle:
-            - DummyOpening
+            - Safe
 
     Zerg:
         BotName: ZergRace
         Cycle:
-            - DummyOpening
+            - Safe
 
     # Can also use specific opponent ids (overrides race options above)
     a_bot_opponent_id_from_aiarena:
         BotName: QueenBot
         Cycle:
-            - DummyOpening
+            - DarkTemplarRush
 
 Builds:
-    DummyOpening:
+    Safe:
         # Build constant workers till x supply
-        ConstantWorkerProductionTill: 0
+        ConstantWorkerProductionTill: 80
+        # Turn on Auto Supply
+        AutoSupplyAtSupply: 17
         OpeningBuildOrder:
-            # Example: ['12 worker', '13 worker', '14 supply', '14 worker', '15 chrono @ nexus',
-            #           '15 worker', '16 gateway']
-            # See docs: https://aressc2.github.io/ares-sc2/tutorials.html#build-runner-system
-            []
-
-
+            - 14 pylon @ ramp
+            - 16 gateway
+            - 16 worker_scout:
+                  - spawn
+                  - enemy_spawn
+                  - enemy_nat
+            - 17 gas
+            - 17 chrono @ nexus
+            - 19 gas
+            - 21 cyberneticscore
+            - 23 stalker
+            - 23 warpgateresearch
+            - 27 nexus
+            - 30 gateway *4
+    DarkTemplarRush:
+        # Build constant workers till x supply
+        ConstantWorkerProductionTill: 80
+        # Turn on Auto Supply
+        AutoSupplyAtSupply: 15
+        OpeningBuildOrder:
+            - 14 pylon
+            - 15 gateway
+            - 16 gas
+            - 16 gas
+            - 19 cyberneticscore
+            - 20 chrono @ cyberneticscore
+            - 21 twilightcouncil
+            - 24 darkshrine
+            - 25 nexus
+            - 28 gateway *3
