@@ -51,20 +51,24 @@ Builds:
         # Turn on Auto Supply
         AutoSupplyAtSupply: 17
         OpeningBuildOrder:
-            - 14 pylon @ ramp
+            - 14 pylon
             - 16 gateway
             - 16 worker_scout:
-                  - spawn
                   - enemy_spawn
                   - enemy_nat
-            - 17 gas
-            - 17 chrono @ nexus
-            - 19 gas
-            - 21 cyberneticscore
-            - 23 stalker
-            - 23 warpgateresearch
-            - 27 nexus
-            - 30 gateway *4
+            - 16 gas
+            - 20 nexus
+            - 20 cyberneticscore
+            - 16 stalker
+            - 16 stalker
+            - 16 stalker
+            - 22 pylon
+            - 22 stalker
+            - 22 warpgateresearch
+            - 33 gateway *2
+            - 33 pylon
+            - 33 stalker *3
+            - 37 gas *2
     DarkTemplarRush:
         # Build constant workers till x supply
         ConstantWorkerProductionTill: 80

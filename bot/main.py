@@ -22,9 +22,17 @@ from ares.behaviors.combat.individual import (
     StutterUnitBack,
     UseAbility,
 )
-from ares.behaviors.macro import AutoSupply, Mining, SpawnController
-from ares.behaviors.macro.macro_plan import MacroPlan
-from ares.consts import ALL_STRUCTURES, WORKER_TYPES, UnitRole, UnitTreeQueryType
+from ares.behaviors.macro import (
+    AutoSupply,
+    BuildWorkers,
+    GasBuildingController,
+    MacroPlan,
+    ProductionController,
+    SpawnController,
+    UpgradeController,
+)
+from ares.behaviors.macro import Mining, BuildStructure, ExpansionController
+from ares.consts import ALL_STRUCTURES, WORKER_TYPES, ALL_WORKER_TYPES, UnitRole, UnitTreeQueryType
 from cython_extensions import cy_closest_to, cy_in_attack_range, cy_pick_enemy_target
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
@@ -34,11 +42,15 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 
+from bot.burrow_decision import BurrowDecision
+from bot.macro.chrono_controller import ChronoController
+
 # this will be used for ares SpawnController behavior
 ARMY_COMPS: dict[Race, dict] = {
     Race.Protoss: {
-        UnitID.STALKER: {"proportion": 0.2, "priority": 0},
-        UnitID.DARKTEMPLAR: {"proportion": 0.8, "priority": 1},
+        UnitID.STALKER: {"proportion": 0.7, "priority": 1},
+        UnitID.DARKTEMPLAR: {"proportion": 0.2, "priority": 0},
+        UnitID.ZEALOT: {"proportion": 0.1, "priority": 1},
     },
     Race.Terran: {
         UnitID.MARINE: {"proportion": 1.0, "priority": 0},
@@ -47,7 +59,7 @@ ARMY_COMPS: dict[Race, dict] = {
         UnitID.ROACH: {"proportion": 1.0, "priority": 0},
     },
     # Example if using more than one unit
-    # proportion's add up to 1.0 with 0 being highest priority and 10 lowest
+    # proportion's add up to 1.0 with 0 being the highest priority and 10 lowest
     # Race.Zerg: {
     #     UnitID.HYDRALISK: {"proportion": 0.15, "priority": 0},
     #     UnitID.ROACH: {"proportion": 0.8, "priority": 1},
@@ -62,6 +74,30 @@ COMMON_UNIT_IGNORE_TYPES: set[UnitID] = {
     UnitID.CREEPTUMORQUEEN,
     UnitID.CREEPTUMOR,
     UnitID.MULE,
+}
+
+DESIRED_UPGRADES: dict[Race, list[UpgradeId]] = {
+    Race.Protoss: {
+        UpgradeId.WARPGATERESEARCH,
+        UpgradeId.CHARGE,
+        UpgradeId.BLINKTECH,
+        UpgradeId.DARKTEMPLARBLINKUPGRADE,
+        UpgradeId.PROTOSSSHIELDSLEVEL1,
+        UpgradeId.PROTOSSGROUNDWEAPONSLEVEL1,
+        UpgradeId.PROTOSSGROUNDARMORSLEVEL1,
+        UpgradeId.PROTOSSSHIELDSLEVEL2,
+        UpgradeId.PROTOSSSHIELDSLEVEL3,
+        UpgradeId.PROTOSSGROUNDWEAPONSLEVEL2,
+        UpgradeId.PROTOSSGROUNDWEAPONSLEVEL3,
+        UpgradeId.PROTOSSGROUNDARMORSLEVEL2,
+        UpgradeId.PROTOSSGROUNDARMORSLEVEL3,
+    },
+    Race.Terran: {
+
+    },
+    Race.Zerg: {
+
+    },
 }
 
 
@@ -140,33 +176,42 @@ class MyBot(AresBot):
         """
         await super(MyBot, self).on_unit_created(unit)
 
+        # Don't assign Workers or Structures to ATTACKING role
+        if unit.type_id in ALL_STRUCTURES or unit.type_id in ALL_WORKER_TYPES or unit.type_id in { UnitID.QUEEN, UnitID.OVERLORD, }:
+            return
+
         # assign our forces ATTACKING by default
-        if unit.type_id not in WORKER_TYPES and unit.type_id not in {
-            UnitID.QUEEN,
-            UnitID.MULE,
-            UnitID.OVERLORD,
-        }:
-            # here we are making a request to an ares manager via the mediator
-            # See https://aressc2.github.io/ares-sc2/api_reference/manager_mediator.html
-            self.mediator.assign_role(tag=unit.tag, role=UnitRole.ATTACKING)
+        # here we are making a request to an ares manager via the mediator
+        # See https://aressc2.github.io/ares-sc2/api_reference/manager_mediator.html
+        self.mediator.assign_role(tag=unit.tag, role=UnitRole.ATTACKING)
 
     def _macro(self) -> None:
-        # ares-sc2 Mining behavior
+        self.build_location = self.start_location
+        if self.mediator.is_position_safe(position=self.start_location, grid=self.mediator.get_ground_grid):
+            self.build_location = self.mediator.find_closest_safe_spot(from_pos=self.start_location, grid=self.mediator.get_ground_grid, radius=50)
+
+                    # ares-sc2 Mining behavior
         # https://aressc2.github.io/ares-sc2/api_reference/behaviors/macro_behaviors.html#ares.behaviors.macro.mining.Mining
         self.register_behavior(Mining())
 
         # set up a simple macro plan, this could be extended if making a full macro bot, see docs here:
         # https://aressc2.github.io/ares-sc2/tutorials/managing_production.html#setting-up-a-macroplan
         macro_plan: MacroPlan = MacroPlan()
-        if self.build_order_runner.build_completed:
-            macro_plan.add(AutoSupply(base_location=self.start_location))
-        macro_plan.add(SpawnController(ARMY_COMPS[self.race]))
-        self.register_behavior(macro_plan)
+        macro_plan.add(ChronoController())
 
-        # do some race specific things (chrono/mule/inject etc)
-        self._protoss_specific_macro()
-        self._terran_specific_macro()
-        self._zerg_specific_macro()
+        if self.build_order_runner.build_completed:
+            macro_plan.add(AutoSupply(base_location=self.build_location))
+            macro_plan.add(BuildWorkers(to_count=min(80, len(self.townhalls) * 21 + 3))) # TODO: check the mineral fields we have and * 2 that instead of using townhalls
+            macro_plan.add(GasBuildingController(to_count=len(self.townhalls) * 2))
+            macro_plan.add(ExpansionController(to_count=len(self.expansion_locations_list), max_pending=2))
+            macro_plan.add(UpgradeController(DESIRED_UPGRADES[self.race], self.build_location))
+
+            macro_plan.add(SpawnController(ARMY_COMPS[self.race], freeflow_mode=True))
+
+            if len(self.townhalls) > 3:
+                macro_plan.add(ProductionController(ARMY_COMPS[self.race], self.build_location, (400, 200)))
+
+        self.register_behavior(macro_plan)
 
     def _micro(self, forces: Units) -> None:
         # make a fast batch distance query to enemy units for all our units
@@ -215,10 +260,9 @@ class MyBot(AresBot):
                 lambda u: u.type_id not in ALL_STRUCTURES
             )
 
-            if self.race == Race.Zerg:
-                # you can add a CombatManeuver to another CombatManeuver!!!
-                burrow_behavior: CombatManeuver = self.burrow_behavior(unit)
-                attacking_maneuver.add(burrow_behavior)
+
+            # TODO: Dodge AOE attacks
+            attacking_maneuver.add(BurrowDecision(unit)) # Burrow Units
 
             # enemy around, engagement control
             if all_close:
@@ -259,41 +303,6 @@ class MyBot(AresBot):
 
             # DON'T FORGET TO REGISTER OUR COMBAT MANEUVER!!
             self.register_behavior(attacking_maneuver)
-
-    def burrow_behavior(self, roach: Unit) -> CombatManeuver:
-        """
-        Burrow or unburrow roach
-        """
-        burrow_maneuver: CombatManeuver = CombatManeuver()
-        if roach.is_burrowed and roach.health_percentage > self.UNBURROW_AT_HEALTH_PERC:
-            burrow_maneuver.add(UseAbility(AbilityId.BURROWUP, roach, None))
-        elif (
-            not roach.is_burrowed
-            and roach.health_percentage <= self.BURROW_AT_HEALTH_PERC
-        ):
-            burrow_maneuver.add(UseAbility(AbilityId.BURROWDOWN, roach, None))
-
-        return burrow_maneuver
-
-    def _protoss_specific_macro(self):
-        if(not self.build_order_runner.build_completed):
-            return
-
-        if (
-            not self.already_pending_upgrade(UpgradeId.WARPGATERESEARCH)
-            and self.can_afford(UpgradeId.WARPGATERESEARCH)
-        ):
-            self.research(UpgradeId.WARPGATERESEARCH)
-
-        # chrono gateways
-        for th in self.townhalls:
-            if th.energy >= 50:
-                if gateways := [
-                    g
-                    for g in self.mediator.get_own_structures_dict[UnitID.GATEWAY]
-                    if g.build_progress >= 1.0 and not g.is_idle
-                ]:
-                    th(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, gateways[0])
 
     def _terran_specific_macro(self):
         # use mules
