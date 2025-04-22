@@ -16,27 +16,32 @@ BuildChoices:
     test_123:
         BotName: Test
         Cycle:
-            - Safe
+            - 1GateExpand
+            - 4Gate
 
     Protoss:
         BotName: ProtossRace
         Cycle:
-            - Safe
+            - 1GateExpand
+            - 4Gate
 
     Random:
         BotName: RandomRace
         Cycle:
-            - Safe
+            - 1GateExpand
+            - 4Gate
 
     Terran:
         BotName: TerranRace
         Cycle:
-            - Safe
+            - 1GateExpand
+            - 4Gate
 
     Zerg:
         BotName: ZergRace
         Cycle:
-            - Safe
+            - 1GateExpand
+            - 4Gate
 
     # Can also use specific opponent ids (overrides race options above)
     a_bot_opponent_id_from_aiarena:
@@ -45,17 +50,42 @@ BuildChoices:
             - DarkTemplarRush
 
 Builds:
+    1GateExpand:
+        ConstantWorkerProductionTill: 90
+        AutoSupplyAtSupply: 23
+        OpeningBuildOrder:
+            - 14 pylon @ nat_wall
+            - 15 gateway @ nat_wall
+            - 15 worker_scout:
+                - enemy_spawn
+                - enemy_nat_vision
+            - 16 gas
+            - 20 nexus
+            - 20 cyberneticscore @ nat_wall
+            - 20 gas
+            - 22 pylon
+            - 22 adept
+            - 22 warpgateresearch
+            - 22 gateway @ nat_wall
+            # This is where you would make a starget, TwilightCouncel or other stuff. Basically your next tech
+    4Gate:
+        ConstantWorkerProductionTill: 20
+        AutoSupplyAtSupply: 23
+        PersistentWorker: True
+        OpeningBuildOrder:
+            - 13 pylon @ enemy_third
+            - 15 gateway @ enemy_third *4
     Safe:
         # Build constant workers till x supply
         ConstantWorkerProductionTill: 80
         # Turn on Auto Supply
         AutoSupplyAtSupply: 17
         OpeningBuildOrder:
-            - 14 pylon
-            - 16 gateway
+            - 14 pylon @ nat_wall
+            - 16 gateway @ nat_wall
             - 16 worker_scout:
                   - enemy_spawn
-                  - enemy_nat
+                  - enemy_nat_vision
             - 16 gas
             - 20 nexus
             - 20 cyberneticscore

@@ -11,17 +11,7 @@ software engineering principles may be necessary.
 from itertools import cycle
 from typing import Optional
 
-import numpy as np
-from ares import AresBot, ManagerMediator, Hub
-from ares.behaviors.combat import CombatManeuver
-from ares.behaviors.combat.group import AMoveGroup
-from ares.behaviors.combat.individual import (
-    AMove,
-    KeepUnitSafe,
-    PathUnitToTarget,
-    ShootTargetInRange,
-    StutterUnitBack,
-)
+from ares import AresBot, ManagerMediator, Hub, BuildOrderRunner
 from ares.behaviors.macro import (
     AutoSupply,
     BuildWorkers,
@@ -29,24 +19,21 @@ from ares.behaviors.macro import (
     MacroPlan,
     ProductionController,
     SpawnController,
-    UpgradeController,
+    UpgradeController, RestorePower,
 )
 from ares.behaviors.macro import Mining, ExpansionController
-from ares.consts import ALL_STRUCTURES, ALL_WORKER_TYPES, UnitRole, UnitTreeQueryType
-from cython_extensions import cy_closest_to, cy_in_attack_range, cy_pick_enemy_target
+from ares.consts import ALL_STRUCTURES, ALL_WORKER_TYPES, UnitRole
 from sc2.data import Race
-from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId as UnitID
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
-from sc2.units import Units
 
-from bot.combat.burrow_decision import BurrowDecision
 from bot.macro.protoss.chrono_controller import ChronoController
 from bot.macro.protoss.townhall_pylon_controller import TownhallPylonController
-from bot.manager.combat_attack_manager import AttackManager
-from bot.manager.combat_harass_manager import HarassManager
+from bot.manager.combat.combat_attack_manager import AttackManager
+from bot.manager.combat.combat_harass_manager import HarassManager
+from bot.manager.custom_build_order_runner import CustomBuildOrderRunner
 
 # this will be used for ares SpawnController behavior
 ARMY_COMPS: dict[Race, dict] = {
@@ -135,6 +122,17 @@ class MyBot(AresBot):
         """
         await super(MyBot, self).on_start()
 
+        # Literally all this does is override the persistent worker setting
+        self.build_order_runner: BuildOrderRunner = CustomBuildOrderRunner(
+            self,
+            self.manager_hub.data_manager.chosen_opening,
+            self.config,
+            self.manager_hub.manager_mediator,
+        )
+
+        if self.build_order_runner.chosen_opening == "4Gate":
+            ARMY_COMPS[Race.Protoss] = {UnitID.ZEALOT: {"proportion": 1, "priority": 0}}
+
         self.current_base_target = self.enemy_start_locations[0]
         self.expansions_generator = cycle(
             [pos for pos in self.expansion_locations_list]
@@ -173,9 +171,10 @@ class MyBot(AresBot):
         # https://aressc2.github.io/ares-sc2/tutorials/managing_production.html#setting-up-a-macroplan
         macro_plan: MacroPlan = MacroPlan()
         macro_plan.add(ChronoController())
+        macro_plan.add(RestorePower())
 
         # After 60 seconds we can assume we need Pylons at the bases we own
-        if self.time > 60:
+        if self.time > 120:
             macro_plan.add(TownhallPylonController())
 
         if self.build_order_runner.build_completed:
@@ -185,7 +184,8 @@ class MyBot(AresBot):
             macro_plan.add(ExpansionController(to_count=len(self.expansion_locations_list), max_pending=2))
             macro_plan.add(UpgradeController(DESIRED_UPGRADES[self.race], self.build_location))
 
-            macro_plan.add(SpawnController(ARMY_COMPS[self.race], freeflow_mode=True))
+
+            macro_plan.add(SpawnController(ARMY_COMPS[self.race], freeflow_mode=True, spawn_target=self.current_base_target))
 
             if len(self.townhalls) > 3:
                 macro_plan.add(ProductionController(ARMY_COMPS[self.race], self.build_location, (400, 200)))

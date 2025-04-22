@@ -8,11 +8,12 @@ from loguru import logger
 
 from ares import ManagerMediator
 from ares.behaviors.combat import CombatManeuver
-from ares.behaviors.combat.group import KeepGroupSafe, PathGroupToTarget, AMoveGroup
+from ares.behaviors.combat.group import KeepGroupSafe, PathGroupToTarget, AMoveGroup, StutterGroupBack, \
+    StutterGroupForward
 from ares.behaviors.combat.individual import PathUnitToTarget, AMove, StutterUnitBack, KeepUnitSafe, ShootTargetInRange
-from ares.consts import UnitRole, UnitTreeQueryType, ALL_STRUCTURES
+from ares.consts import UnitRole, UnitTreeQueryType, ALL_STRUCTURES, EngagementResult
 
-from cython_extensions.units_utils import cy_closest_to, cy_in_attack_range
+from cython_extensions.units_utils import cy_closest_to, cy_in_attack_range, cy_sorted_by_distance_to
 from cython_extensions.combat_utils import cy_pick_enemy_target
 
 from ares.managers.manager import Manager
@@ -23,6 +24,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 
 from bot.combat.burrow_decision import BurrowDecision
+from bot.combat.group.group_up import GroupUp
 
 COMMON_UNIT_IGNORE_TYPES: set[UnitID] = {
     UnitID.EGG,
@@ -33,21 +35,21 @@ class AttackManager(Manager):
 
     def should_attack(self, forces: Units, enemy: Units) -> bool:
         """Determine if we are currently attacking or should start our attack"""
-        return self.ai.mediator.can_win_fight(own_units=forces, enemy_units=enemy, timing_adjust=False, good_positioning=False, workers_do_no_damage=True).value > 2 # If we are not going to lose badly then engage
+        return (self.ai.build_order_runner.chosen_opening == "4Gate" and self.ai.supply_army > 6) or self.ai.mediator.can_win_fight(own_units=forces, enemy_units=enemy, timing_adjust=False, good_positioning=False, workers_do_no_damage=True).value > EngagementResult.LOSS_MARGINAL.value or self.ai.supply_left <= 0 # If we are not going to lose badly then engage
         # return False
 
     @property
     def attack_target(self) -> Point2:
-        if self.ai.enemy_structures:
-            # using a faster cython alternative here from cython extensions library
-            # this is installed for ares users by default
-            # see docs here for all available functions
-            # https://aressc2.github.io/cython-extensions-sc2/
-            return cy_closest_to(self.ai.start_location, self.ai.enemy_structures).position
-        # not seen anything in early game, just head to enemy spawn
-        elif self.ai.time < 240.0:
+        """What is the general point we would like to attack"""
+
+        # Its still early game, just head to the enemy spawn, no need for anything fancy
+        if self.ai.time < 240.0:
             return self.ai.enemy_start_locations[0]
-        # else search the map
+        elif self.ai.enemy_structures:
+            distance_from = cy_sorted_by_distance_to(self.ai.enemy_structures, self.ai.enemy_start_locations[0])
+            farthest = distance_from[len(distance_from) - 1]
+            logger.info(f"Farthest structure is {farthest.name} at {farthest.position}")
+            return farthest.position
         else:
             # cycle through expansion locations
             if self.ai.is_visible(self.ai.current_base_target):
@@ -55,14 +57,19 @@ class AttackManager(Manager):
 
             return self.ai.current_base_target
 
+
     async def update(self, iteration: int) -> None:
 
         # using role system to separate our fighting forces from other units
         # https://aressc2.github.io/ares-sc2/api_reference/manager_mediator.html#ares.managers.manager_mediator.ManagerMediator.get_units_from_role
         # see `self.on_unit_created` where we originally assigned units ATTACKING role
         forces: Units = self.ai.mediator.get_units_from_role(role=UnitRole.ATTACKING)
+        if not forces:
+            return
 
         known_enemy = self.ai.mediator.get_cached_enemy_army()
+
+        group_location = self.manager_mediator.get_own_nat
 
         # Group attack stuff
         attacking_group_maneuver: CombatManeuver = CombatManeuver()
@@ -70,14 +77,20 @@ class AttackManager(Manager):
         # get a ground grid to path on, this already contains enemy influence
         grid: np.ndarray = self.ai.mediator.get_ground_grid
 
-        if self.should_attack(forces, known_enemy):
-            # make a single call to self.attack_target property
-            # otherwise it keep calculating for every unit
-            target: Point2 = self.attack_target
+        # make a single call to self.attack_target property
+        # otherwise it keep calculating for every unit
+        target: Point2 = self.attack_target
+        close_to = self.ai.mediator.get_cached_enemy_army().in_distance_between(target, 0, 20)
 
+
+
+        if self.should_attack(forces, close_to):
+
+            # attacking_group_maneuver.add(StutterGroupForward(forces, {u.tag for u in forces}, forces.center, target, close_to))
             attacking_group_maneuver.add(AMoveGroup(forces, {u.tag for u in forces}, target))
         else:
-            attacking_group_maneuver.add(AMoveGroup(forces, {u.tag for u in forces}, self.ai.start_location))
+            attacking_group_maneuver.add(StutterGroupBack(forces, {u.tag for u in forces}, forces.center, group_location, grid))
+            attacking_group_maneuver.add(GroupUp(forces, group_location.towards(target, 5)))
 
         # DON'T FORGET TO REGISTER OUR COMBAT MANEUVER!!
         self.ai.register_behavior(attacking_group_maneuver)
