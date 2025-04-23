@@ -35,7 +35,7 @@ class AttackManager(Manager):
 
     def should_attack(self, forces: Units, enemy: Units) -> bool:
         """Determine if we are currently attacking or should start our attack"""
-        return (self.ai.build_order_runner.chosen_opening == "4Gate" and self.ai.supply_army > 6) or self.ai.mediator.can_win_fight(own_units=forces, enemy_units=enemy, timing_adjust=False, good_positioning=False, workers_do_no_damage=True).value > EngagementResult.LOSS_MARGINAL.value or self.ai.supply_left <= 0 # If we are not going to lose badly then engage
+        return (self.ai.build_order_runner.chosen_opening == "4GateRush" and self.ai.supply_army > 6) or self.ai.mediator.can_win_fight(own_units=forces, enemy_units=enemy, timing_adjust=False, good_positioning=False, workers_do_no_damage=True).value > EngagementResult.LOSS_MARGINAL.value or self.ai.supply_left <= 0 # If we are not going to lose badly then engage
         # return False
 
     @property

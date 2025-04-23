@@ -130,7 +130,7 @@ class MyBot(AresBot):
             self.manager_hub.manager_mediator,
         )
 
-        if self.build_order_runner.chosen_opening == "4Gate":
+        if self.build_order_runner.chosen_opening == "4GateRush":
             ARMY_COMPS[Race.Protoss] = {UnitID.ZEALOT: {"proportion": 1, "priority": 0}}
 
         self.current_base_target = self.enemy_start_locations[0]
@@ -177,17 +177,25 @@ class MyBot(AresBot):
         if self.time > 120:
             macro_plan.add(TownhallPylonController())
 
-        if self.build_order_runner.build_completed:
+        if self.build_order_runner.chosen_opening != "4GateRush" or self.time > 300:
+            if self.build_order_runner.build_completed:
+                macro_plan.add(AutoSupply(base_location=self.build_location))
+                macro_plan.add(BuildWorkers(to_count=min(90, len(self.townhalls) * 21 + 3))) # TODO: check the mineral fields we have and * 2 that instead of using townhalls
+                macro_plan.add(GasBuildingController(to_count=len(self.townhalls) * 2))
+                macro_plan.add(ExpansionController(to_count=len(self.expansion_locations_list), max_pending=2))
+                macro_plan.add(UpgradeController(DESIRED_UPGRADES[self.race], self.build_location))
+
+
+                macro_plan.add(SpawnController(ARMY_COMPS[self.race], spawn_target=self.current_base_target))
+
+                if len(self.townhalls) > 3:
+                    macro_plan.add(ProductionController(ARMY_COMPS[self.race], self.build_location, (400, 200)))
+        elif self.build_order_runner.build_completed:
             macro_plan.add(AutoSupply(base_location=self.build_location))
-            macro_plan.add(BuildWorkers(to_count=min(90, len(self.townhalls) * 21 + 3))) # TODO: check the mineral fields we have and * 2 that instead of using townhalls
-            macro_plan.add(GasBuildingController(to_count=len(self.townhalls) * 2))
+            macro_plan.add(BuildWorkers(to_count=min(90, len(self.townhalls) * 21 + 3)))  # TODO: check the mineral fields we have and * 2 that instead of using townhalls
             macro_plan.add(ExpansionController(to_count=len(self.expansion_locations_list), max_pending=2))
-            macro_plan.add(UpgradeController(DESIRED_UPGRADES[self.race], self.build_location))
+            macro_plan.add(SpawnController(ARMY_COMPS[self.race], spawn_target=self.current_base_target))
+            macro_plan.add(ProductionController(ARMY_COMPS[self.race], self.build_location, (400, 200)))
 
-
-            macro_plan.add(SpawnController(ARMY_COMPS[self.race], freeflow_mode=True, spawn_target=self.current_base_target))
-
-            if len(self.townhalls) > 3:
-                macro_plan.add(ProductionController(ARMY_COMPS[self.race], self.build_location, (400, 200)))
 
         self.register_behavior(macro_plan)

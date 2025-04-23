@@ -17,31 +17,31 @@ BuildChoices:
         BotName: Test
         Cycle:
             - 1GateExpand
-            - 4Gate
+            - 4GateRush
 
     Protoss:
         BotName: ProtossRace
         Cycle:
             - 1GateExpand
-            - 4Gate
+            - 4GateRush
 
     Random:
         BotName: RandomRace
         Cycle:
             - 1GateExpand
-            - 4Gate
+            - 4GateRush
 
     Terran:
         BotName: TerranRace
         Cycle:
             - 1GateExpand
-            - 4Gate
+            - 4GateRush
 
     Zerg:
         BotName: ZergRace
         Cycle:
             - 1GateExpand
-            - 4Gate
+            - 4GateRush
 
     # Can also use specific opponent ids (overrides race options above)
     a_bot_opponent_id_from_aiarena:
@@ -68,7 +68,7 @@ Builds:
             - 22 warpgateresearch
             - 22 gateway @ nat_wall
             # This is where you would make a starget, TwilightCouncel or other stuff. Basically your next tech
-    4Gate:
+    4GateRush:
         ConstantWorkerProductionTill: 20
         AutoSupplyAtSupply: 23
         PersistentWorker: True

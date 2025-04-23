@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 @dataclass
 class GroupPriorityAttack(CombatGroupBehavior):
     """
-
+    Use the group to attack specific units based on priority and what units can actually be attacked.
     """
 
     forces: Units
@@ -33,5 +33,4 @@ class GroupPriorityAttack(CombatGroupBehavior):
         # If we don't have any forces, do nothing
         if len(self.forces) == 0:
             return False
-
 
