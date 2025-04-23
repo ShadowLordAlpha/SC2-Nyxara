@@ -139,6 +139,8 @@ class MyBot(AresBot):
         )
         self._begin_attack_at_supply = 3.0 if self.race == Race.Terran else 6.0
 
+        await self.chat_send("tag:" + self.build_order_runner.chosen_opening, False)
+
     async def on_step(self, iteration: int) -> None:
         await super(MyBot, self).on_step(iteration)
 
