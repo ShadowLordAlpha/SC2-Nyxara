@@ -69,15 +69,12 @@ class Proxy4GateManager(Manager):
             # Defend our own area
             pass
 
-
-
-        #TODO: when done add combat plan to behavior plan
-        # self.ai.register_behavior(combat_plan)
+        self.ai.register_behavior(combat_plan)
 
         # Setup Macro Behaviors
         macro_plan: MacroPlan = MacroPlan()
         macro_plan.add(RestorePower())
-        macro_plan.add(SpawnController(ARMY_COMP))
+        macro_plan.add(SpawnController(ARMY_COMP, spawn_target=self.ai.enemy_start_locations[0])) # spawn the units as close to enemy as possible
 
         # logger.info(f"testing {self.ai.structures(UnitID.GATEWAY).ready.amount}")
         # Once we have a gateway we want to prioritize it and we can enable use of the chrono controller
@@ -85,11 +82,11 @@ class Proxy4GateManager(Manager):
             macro_plan.add(ChronoController())
             macro_plan.add(AutoSupply(base_location=self.ai.start_location))
 
-        if self.start_proxy_attack or self.ai.time > 150 and self.ai.minerals > 150:
-            macro_plan.add(ExpansionController(to_count=len(self.ai.expansion_locations_list), max_pending=2))
+        if (self.start_proxy_attack or self.ai.time > 150) and self.ai.minerals > 150:
+            macro_plan.add(ExpansionController(to_count=len(self.ai.expansion_locations_list)))
             macro_plan.add(BuildWorkers(to_count=min(90, max(len(self.ai.townhalls) * 21 + 4, 30))))
 
-        if self.start_proxy_attack or self.ai.time > 240 and self.ai.time > 240 and self.ai.townhalls.amount > 1: # at 4 minutes we can start upgrades
+        if (self.start_proxy_attack or self.ai.time > 240) and self.ai.time > 240 and self.ai.townhalls.amount > 1: # at 4 minutes we can start upgrades
             macro_plan.add(GasBuildingController(to_count=1))
             macro_plan.add(UpgradeController(DESIRED_UPGRADES, self.ai.start_location))
             macro_plan.add(ProductionController(ARMY_COMP, self.ai.start_location, (400, 0)))
