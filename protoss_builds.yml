@@ -79,6 +79,7 @@ Builds:
             - 19 gateway @ enemy_third
             - 19 gateway @ enemy_third
             - 19 gateway @ enemy_third
+            - 19 pylon @ enemy_third
     Safe:
         # Build constant workers till x supply
         ConstantWorkerProductionTill: 80
