@@ -2,6 +2,7 @@
 """
 Proxy 4 gate opening for Protoss. This cheese normally either wins or dies but is a really good cheese to have
 """
+from ares.behaviors.combat import CombatManeuver
 from ares.behaviors.macro import MacroPlan, Mining, RestorePower, SpawnController, AutoSupply, BuildWorkers, \
     ProductionController, ExpansionController, GasBuildingController, UpgradeController
 from ares.managers.manager import Manager
@@ -60,7 +61,18 @@ class Proxy4GateManager(Manager):
         # Calculate what we need for everything else now... basically make macro and combat decisions
 
         # Setup Combat Behaviors
+        combat_plan: CombatManeuver = CombatManeuver()
+        if self.start_proxy_attack:
+            # attack the enemy area
+            pass
+        else:
+            # Defend our own area
+            pass
 
+
+
+        #TODO: when done add combat plan to behavior plan
+        # self.ai.register_behavior(combat_plan)
 
         # Setup Macro Behaviors
         macro_plan: MacroPlan = MacroPlan()
@@ -73,14 +85,14 @@ class Proxy4GateManager(Manager):
             macro_plan.add(ChronoController())
             macro_plan.add(AutoSupply(base_location=self.ai.start_location))
 
-        if self.start_proxy_attack:
-            macro_plan.add(BuildWorkers(to_count=min(90, len(self.ai.townhalls) * 21 + 3)))
+        if self.start_proxy_attack or self.ai.time > 150 and self.ai.minerals > 150:
             macro_plan.add(ExpansionController(to_count=len(self.ai.expansion_locations_list), max_pending=2))
+            macro_plan.add(BuildWorkers(to_count=min(90, max(len(self.ai.townhalls) * 21 + 4, 30))))
 
-        if self.start_proxy_attack and self.ai.time > 240: # at 4 minutes we can start upgrades
-            macro_plan.add(GasBuildingController(to_count=2))
+        if self.start_proxy_attack or self.ai.time > 240 and self.ai.time > 240 and self.ai.townhalls.amount > 1: # at 4 minutes we can start upgrades
+            macro_plan.add(GasBuildingController(to_count=1))
             macro_plan.add(UpgradeController(DESIRED_UPGRADES, self.ai.start_location))
             macro_plan.add(ProductionController(ARMY_COMP, self.ai.start_location, (400, 0)))
 
-        self.ai.register_behavior(Mining())
+        self.ai.register_behavior(Mining()) # Ya... setting this in the macro plan breaks everything...
         self.ai.register_behavior(macro_plan)
