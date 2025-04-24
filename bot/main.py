@@ -33,7 +33,9 @@ from bot.macro.protoss.chrono_controller import ChronoController
 from bot.macro.protoss.townhall_pylon_controller import TownhallPylonController
 from bot.manager.combat.combat_attack_manager import AttackManager
 from bot.manager.combat.combat_harass_manager import HarassManager
-from bot.manager.custom_build_order_runner import CustomBuildOrderRunner
+from bot.manager.control.dynamic_controller import DynamicController
+from bot.manager.control.protoss.opening.protoss_proxy_4_gate import Proxy4GateManager
+from bot.manager.macro.custom_build_order_runner import CustomBuildOrderRunner
 
 # this will be used for ares SpawnController behavior
 ARMY_COMPS: dict[Race, dict] = {
@@ -83,6 +85,7 @@ DESIRED_UPGRADES: dict[Race, list[UpgradeId]] = {
 
 
 class MyBot(AresBot):
+
     expansions_generator: cycle
     current_base_target: Point2
     _begin_attack_at_supply: float
@@ -102,6 +105,7 @@ class MyBot(AresBot):
 
         self._commenced_attack: bool = False
         self.harass_manager = None
+        self.dynamic_controller = None
 
     def register_managers(self) -> None:
         """
@@ -109,10 +113,11 @@ class MyBot(AresBot):
         """
         manager_mediator = ManagerMediator()
 
+        self.dynamic_controller = DynamicController(self, self.config, manager_mediator)
         self.harass_manager = HarassManager(self, self.config, manager_mediator)
         attack_manager = AttackManager(self, self.config, manager_mediator)
 
-        self.manager_hub = Hub(self, self.config, manager_mediator, additional_managers=[self.harass_manager, attack_manager])
+        self.manager_hub = Hub(self, self.config, manager_mediator, additional_managers=[self.harass_manager, self.dynamic_controller, attack_manager])
         self.manager_hub.init_managers()
 
     async def on_start(self) -> None:
@@ -131,7 +136,7 @@ class MyBot(AresBot):
         )
 
         if self.build_order_runner.chosen_opening == "4GateRush":
-            ARMY_COMPS[Race.Protoss] = {UnitID.ZEALOT: {"proportion": 1, "priority": 0}}
+            self.dynamic_controller.set_controller(Proxy4GateManager(self, self.config, self.manager_hub.manager_mediator))
 
         self.current_base_target = self.enemy_start_locations[0]
         self.expansions_generator = cycle(
@@ -144,7 +149,8 @@ class MyBot(AresBot):
     async def on_step(self, iteration: int) -> None:
         await super(MyBot, self).on_step(iteration)
 
-        self._macro()
+        if self.build_order_runner.chosen_opening != "4GateRush":
+            self._macro()
 
     async def on_unit_created(self, unit: Unit) -> None:
         """

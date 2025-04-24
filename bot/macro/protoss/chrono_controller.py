@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from loguru import logger
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId as UnitId
 from sc2.ids.buff_id import BuffId
@@ -52,6 +53,7 @@ class ChronoController(MacroBehavior):
 
     def execute(self, ai: "AresBot", config: dict, mediator: ManagerMediator) -> bool:
         """Execute the Chrono macro behavior."""
+        logger.info("ChronoController: Executing")
 
         # Check each Nexus to see if we have enough energy
         for nexus in ai.ready_townhalls:

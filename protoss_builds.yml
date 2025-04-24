@@ -51,10 +51,10 @@ BuildChoices:
 
 Builds:
     1GateExpand:
-        ConstantWorkerProductionTill: 90
-        AutoSupplyAtSupply: 23
+        ConstantWorkerProductionTill: 25
+        AutoSupplyAtSupply: 22
         OpeningBuildOrder:
-            - 14 pylon @ nat_wall
+            - 13 pylon @ nat_wall
             - 15 gateway @ nat_wall
             - 15 worker_scout:
                 - enemy_spawn
@@ -69,12 +69,16 @@ Builds:
             - 22 gateway @ nat_wall
             # This is where you would make a starget, TwilightCouncel or other stuff. Basically your next tech
     4GateRush:
-        ConstantWorkerProductionTill: 20
-        AutoSupplyAtSupply: 23
+        ConstantWorkerProductionTill: 19
+        AutoSupplyAtSupply: 25
         PersistentWorker: True
         OpeningBuildOrder:
+            - 13 pylon @ ramp
             - 13 pylon @ enemy_third
-            - 15 gateway @ enemy_third *4
+            - 19 gateway @ enemy_third
+            - 19 gateway @ enemy_third
+            - 19 gateway @ enemy_third
+            - 19 gateway @ enemy_third
     Safe:
         # Build constant workers till x supply
         ConstantWorkerProductionTill: 80
