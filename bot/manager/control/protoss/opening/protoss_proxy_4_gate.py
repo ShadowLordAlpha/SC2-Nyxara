@@ -145,7 +145,7 @@ class Proxy4GateManager(Manager):
         #         self.ai.register_behavior(combat_plan)
 
         # Setup worker Defense
-        self._defend_mineral_line()
+        await self._defend_mineral_line()
 
         # Setup Macro Behaviors
         macro_plan: MacroPlan = MacroPlan()
@@ -170,7 +170,7 @@ class Proxy4GateManager(Manager):
         self.ai.register_behavior(Mining()) # Ya... setting this in the macro plan breaks everything...
         self.ai.register_behavior(macro_plan)
 
-    def _defend_mineral_line(self):
+    async def _defend_mineral_line(self):
         """
         Check if we are being attacked in a mineral line, if so add the workers in that line to the defense and attack
         the enemy if we would likely win. This will also return the workers to idle after the attack
@@ -193,7 +193,7 @@ class Proxy4GateManager(Manager):
 
                 for worker in workers:
                     if not self.worker_mineralline_defense_message:
-                        self.ai.chat_send(f"Tag:{self.ai.time_formatted}_WorkerMinerallineDefense")
+                        await self.ai.chat_send(f"Tag:{self.ai.time_formatted}_WorkerMinerallineDefense")
                         self.worker_mineralline_defense_message = True
                     # TODO: better targeting, for now the first will work
                     self.ai.register_behavior(WorkerKiteBack(unit=worker, target=enemy_units[0]))
