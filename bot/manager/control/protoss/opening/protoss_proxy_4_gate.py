@@ -68,6 +68,7 @@ class Proxy4GateManager(Manager):
     """
 
     start_proxy_attack : bool = False # Initial start, after this triggers it stays on
+    worker_mineralline_defense_message : bool = False # We only want to send the tag once, so this is to keep track of that
 
     async def update(self, iteration: int) -> None:
         """
@@ -191,6 +192,9 @@ class Proxy4GateManager(Manager):
                 defending_workers.update(workers.tags)
 
                 for worker in workers:
+                    if not self.worker_mineralline_defense_message:
+                        self.ai.chat_send(f"Tag:{self.ai.time_formatted}_WorkerMinerallineDefense")
+                        self.worker_mineralline_defense_message = True
                     # TODO: better targeting, for now the first will work
                     self.ai.register_behavior(WorkerKiteBack(unit=worker, target=enemy_units[0]))
 
