@@ -53,7 +53,6 @@ class ChronoController(MacroBehavior):
 
     def execute(self, ai: "AresBot", config: dict, mediator: ManagerMediator) -> bool:
         """Execute the Chrono macro behavior."""
-        logger.info("ChronoController: Executing")
 
         # Check each Nexus to see if we have enough energy
         for nexus in ai.ready_townhalls:
@@ -64,7 +63,7 @@ class ChronoController(MacroBehavior):
                     if not unit.is_ready and self.boost_constructing_structures and not BuffId.CHRONOBOOSTENERGYCOST in unit.buffs:
                         nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, unit)
                         return True
-                    elif unit.is_ready and not unit.is_idle and not BuffId.CHRONOBOOSTENERGYCOST in unit.buffs:
+                    elif unit.is_ready and not unit.is_idle and unit.is_powered and not BuffId.CHRONOBOOSTENERGYCOST in unit.buffs:
                         nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, unit)
                         return True
 

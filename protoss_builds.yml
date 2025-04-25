@@ -50,7 +50,7 @@ BuildChoices:
             - DarkTemplarRush
 
 Builds:
-    1GateExpand:
+    1GateExpand: # TODO: this one sucks, make it better or remove it
         ConstantWorkerProductionTill: 25
         AutoSupplyAtSupply: 22
         OpeningBuildOrder:
@@ -67,8 +67,7 @@ Builds:
             - 22 adept
             - 22 warpgateresearch
             - 22 gateway @ nat_wall
-            # This is where you would make a starget, TwilightCouncel or other stuff. Basically your next tech
-    4GateRush:
+    4GateRush: # Proxy 4 Gate build
         ConstantWorkerProductionTill: 19
         AutoSupplyAtSupply: 25
         PersistentWorker: True
@@ -80,43 +79,3 @@ Builds:
             - 19 gateway @ enemy_third
             - 19 gateway @ enemy_third
             - 19 pylon @ enemy_third
-    Safe:
-        # Build constant workers till x supply
-        ConstantWorkerProductionTill: 80
-        # Turn on Auto Supply
-        AutoSupplyAtSupply: 17
-        OpeningBuildOrder:
-            - 14 pylon @ nat_wall
-            - 16 gateway @ nat_wall
-            - 16 worker_scout:
-                  - enemy_spawn
-                  - enemy_nat_vision
-            - 16 gas
-            - 20 nexus
-            - 20 cyberneticscore
-            - 16 stalker
-            - 16 stalker
-            - 16 stalker
-            - 22 pylon
-            - 22 stalker
-            - 22 warpgateresearch
-            - 33 gateway *2
-            - 33 pylon
-            - 33 stalker *3
-            - 37 gas *2
-    DarkTemplarRush:
-        # Build constant workers till x supply
-        ConstantWorkerProductionTill: 80
-        # Turn on Auto Supply
-        AutoSupplyAtSupply: 15
-        OpeningBuildOrder:
-            - 14 pylon
-            - 15 gateway
-            - 16 gas
-            - 16 gas
-            - 19 cyberneticscore
-            - 20 chrono @ cyberneticscore
-            - 21 twilightcouncil
-            - 24 darkshrine
-            - 25 nexus
-            - 28 gateway *3

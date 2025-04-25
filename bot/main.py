@@ -104,7 +104,6 @@ class MyBot(AresBot):
         super().__init__(game_step_override)
 
         self._commenced_attack: bool = False
-        self.harass_manager = None
         self.dynamic_controller = None
 
     def register_managers(self) -> None:
@@ -114,10 +113,8 @@ class MyBot(AresBot):
         manager_mediator = ManagerMediator()
 
         self.dynamic_controller = DynamicController(self, self.config, manager_mediator)
-        self.harass_manager = HarassManager(self, self.config, manager_mediator)
-        attack_manager = AttackManager(self, self.config, manager_mediator)
 
-        self.manager_hub = Hub(self, self.config, manager_mediator, additional_managers=[self.harass_manager, self.dynamic_controller, attack_manager])
+        self.manager_hub = Hub(self, self.config, manager_mediator, additional_managers=[self.dynamic_controller])
         self.manager_hub.init_managers()
 
     async def on_start(self) -> None:
@@ -137,6 +134,8 @@ class MyBot(AresBot):
 
         if self.build_order_runner.chosen_opening == "4GateRush":
             self.dynamic_controller.set_controller(Proxy4GateManager(self, self.config, self.manager_hub.manager_mediator))
+        else:
+            self.dynamic_controller.set_controller(AttackManager(self, self.config, self.manager_hub.manager_mediator))
 
         self.current_base_target = self.enemy_start_locations[0]
         self.expansions_generator = cycle(
