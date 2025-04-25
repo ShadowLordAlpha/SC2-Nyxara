@@ -201,7 +201,7 @@ class Proxy4GateManager(Manager):
         current_defenders = self.ai.mediator.get_units_from_role(role=UnitRole.DEFENDING, unit_type=ALL_WORKER_TYPES)
         release_workers = current_defenders.tags.difference(defending_workers)
         if release_workers:
-            self.manager_mediator.batch_assign_role(tags=release_workers, role=UnitRole.IDLE)
+            self.manager_mediator.batch_assign_role(tags=release_workers, role=UnitRole.GATHERING)
 
     @property
     def attack_target(self) -> Point2:
